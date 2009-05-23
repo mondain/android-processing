@@ -26,6 +26,8 @@ package processing.phone;
 import processing.core.PCanvas;
 import processing.core.PMIDlet;
 import android.R;
+import android.content.Context;
+import android.os.Vibrator;
 import android.view.Display;
 import android.webkit.WebView;
 
@@ -53,28 +55,29 @@ public class Phone {
     
     public void fullscreen() {
     	midlet.setTheme(R.style.Theme_Black_NoTitleBar_Fullscreen);
-    	
-        canvas.setFullScreenMode(true);
-        
         midlet.width = canvas.getWidth();
         midlet.height = canvas.getHeight();
     }      
     
     public void noFullscreen() {
-    	midlet.setTheme(R.style.Theme_Black);
-    	
-        canvas.setFullScreenMode(false);        
-        
+    	midlet.setTheme(R.style.Theme_Black);        
         midlet.width = canvas.getWidth();
         midlet.height = canvas.getHeight();        
     }
     
-    public boolean vibrate(int duration) {
-        return display.vibrate(duration);
+    public boolean vibrate(long duration) {
+    	Vibrator vibrator = (Vibrator) midlet.getSystemService(Context.VIBRATOR_SERVICE);
+    	if (vibrator != null) {
+		    vibrator.vibrate(duration);
+		    return true;
+    	} else {
+    		return false;
+    	}
+        
     }
     
     public boolean flash(int duration) {
-        return display.flashBacklight(duration);
+        return false;
     }
     
     public boolean call(String number) {
