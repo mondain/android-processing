@@ -23,8 +23,12 @@ package processing.image2;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 
-import processing.core.*;
-import javax.microedition.lcdui.*;
+import java.awt.Graphics;
+
+import processing.core.PCanvas;
+import processing.core.PImage;
+import processing.core.PMIDlet;
+import android.graphics.Bitmap;
 
 
 /**
@@ -44,7 +48,7 @@ public class PImage2 extends PImage {
         this(img.image);
     }
     
-    public PImage2(Image img) {
+    public PImage2(Bitmap img) {
         super(img.getWidth(), img.getHeight(), true);
         
         this.pixels = new int[width * height];
