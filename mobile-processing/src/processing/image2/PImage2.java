@@ -23,12 +23,11 @@ package processing.image2;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 
-import java.awt.Graphics;
-
 import processing.core.PCanvas;
 import processing.core.PImage;
 import processing.core.PMIDlet;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 
 
 /**
@@ -36,6 +35,7 @@ import android.graphics.Bitmap;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 public class PImage2 extends PImage {    
+	
     public int[] pixels;
     
     public PImage2(PImage2 img) {
@@ -49,10 +49,9 @@ public class PImage2 extends PImage {
     }
     
     public PImage2(Bitmap img) {
-        super(img.getWidth(), img.getHeight(), true);
-        
+        super(img.getWidth(), img.getHeight(), true);        
         this.pixels = new int[width * height];
-        img.getRGB(pixels, 0, width, 0, 0, width, height);
+        img.getPixels(pixels, 0, width, 0, 0, width, height);
     }
     
     public PImage2(int width, int height) {
@@ -122,20 +121,20 @@ public class PImage2 extends PImage {
             spixels = ((PImage2) source).pixels;
         } else {
             spixels = new int[source.width * source.height];
-            source.image.getRGB(spixels, 0, source.width, 0, 0, source.width, source.height);            
+            source.image.getPixels(spixels, 0, source.width, 0, 0, source.width, source.height);            
         }
         mask(spixels);
     }
     
     public void loadPixels() {
-        PCanvas.buffer.getRGB(pixels, 0, width, 0, 0, width, height);
+    	PCanvas.buffer.getPixels(pixels, 0, width, 0, 0, width, height);
     }
     
     public void loadPixels(int sx, int sy, int swidth, int sheight, int dx, int dy, int dwidth, int dheight) {
         int width = PCanvas.buffer.getWidth();
         int height = PCanvas.buffer.getHeight();
         int[] spixels = new int[width * height];
-        PCanvas.buffer.getRGB(spixels, 0, width, 0, 0, width, height);
+        PCanvas.buffer.getPixels(spixels, 0, width, 0, 0, width, height);
         copy(spixels, width, sx, sy, swidth, sheight, dx, dy, dwidth, dheight);        
     }
     
@@ -154,7 +153,7 @@ public class PImage2 extends PImage {
             spixels = ((PImage2) source).pixels;
         } else {
             spixels = new int[source.width * source.height];
-            source.image.getRGB(spixels, 0, source.width, 0, 0, source.width, source.height);
+            source.image.getPixels(spixels, 0, source.width, 0, 0, source.width, source.height);
         }
         copy(spixels, source.width, sx, sy, swidth, sheight, dx, dy, dwidth, dheight);
     }
@@ -189,7 +188,8 @@ public class PImage2 extends PImage {
         }
     }
     
-    protected void draw(Graphics g, int x, int y) {
-        g.drawRGB(pixels, 0, width, x, y, width, height, true);
+    protected void draw(Canvas g, int x, int y) {
+    	g.drawBitmap(pixels, 0, width, x, y, width, height, true, null);
     }
+    
 }

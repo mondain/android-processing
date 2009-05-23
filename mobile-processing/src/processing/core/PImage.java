@@ -24,6 +24,9 @@ package processing.core;
  */
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Bitmap.Config;
 
 /**
@@ -41,6 +44,9 @@ public class PImage {
     /** If true, this is a mutable image */
     public final boolean mutable;
     
+    /** Provides a means to align the image */
+    private Paint paintLeft = new Paint();
+    
     /** This constructor is intended only for use by PImage2, so it can set 
      * the properties without instantiating an actual Image object, which it
      * doesn't need since it uses an array of pixels instead.
@@ -56,7 +62,7 @@ public class PImage {
     }
     
     public PImage(int width, int height) {
-        image = Bitmap.createBitmap(width, height, Config.RGB_565);
+        image = Bitmap.createBitmap(width, height, Config.ARGB_8888);
         this.width = width;
         this.height = height;
         mutable = true;
@@ -64,9 +70,8 @@ public class PImage {
     
     public PImage(int width, int height, int color) {
         this(width, height);
-        Graphics g = image.getGraphics();
-        g.setColor(color);
-        g.fillRect(0, 0, width, height);
+        Canvas g = new Canvas(image);
+        g.drawColor(color);
     }
     
     public PImage(Bitmap img) {
@@ -82,7 +87,7 @@ public class PImage {
     
     public PImage(byte[] png, int offset, int length) {
         try {
-            image = Image.createImage(png, offset, length);
+        	image = BitmapFactory.decodeByteArray(png, offset, length);
             width = image.getWidth();
             height = image.getHeight();
             mutable = false;
@@ -124,10 +129,10 @@ public class PImage {
             swidth -= sx;
             sheight -= sy;
         }
-        Bitmap image = Bitmap.createBitmap(swidth, sheight, Config.RGB_565);
-        Graphics g = image.getGraphics();
-        g.drawImage(this.image, -sx, -sy, Graphics.TOP | Graphics.LEFT);
-        copy(image, 0, 0, swidth, sheight, dx, dy, dwidth, dheight);
+        Bitmap tmpImage = Bitmap.createBitmap(swidth, sheight, Config.ARGB_8888);
+        Canvas g = new Canvas(tmpImage);
+        g.drawBitmap(image, -sx, -sy, paintLeft);
+        copy(tmpImage, 0, 0, swidth, sheight, dx, dy, dwidth, dheight);
     }
     
     public void copy(PImage source, int sx, int sy, int swidth, int sheight, int dx, int dy, int dwidth, int dheight) {
@@ -144,22 +149,23 @@ public class PImage {
             dwidth = dwidth - dx;
             dheight = dheight - dy;
         }
-        Graphics g = image.getGraphics();
+        Canvas g = new Canvas(image);
         if ((dwidth == swidth) && (dheight == sheight)) {
-            g.setClip(dx, dy, dwidth, dheight);
-            g.drawImage(source, dx - sx, dy - sy, Graphics.TOP | Graphics.LEFT);
+        	//left, top, right, bottom
+        	g.clipRect(dx, dy, dx + dwidth, dy + dheight);
+        	g.drawBitmap(source, dx, dy, paintLeft);
         } else if (dwidth == swidth) {
             int scaleY = dy - sy;
             for (int y = 0; y < dheight; y++) {
-                g.setClip(dx, dy + y, dwidth, 1);
-                g.drawImage(source, dx - sx, scaleY, Graphics.TOP | Graphics.LEFT);
+            	g.clipRect(dx, dy + y, dx + dwidth, 1);
+            	g.drawBitmap(source, dx - sx, scaleY, paintLeft);
                 scaleY = dy - sy - y * sheight / dheight + y;
             }
         } else if (dheight == sheight) {
             int scaleX = dx - sx;
             for (int x = 0; x < dwidth; x++) {
-                g.setClip(dx + x, dy, 1, dheight);
-                g.drawImage(source, scaleX, dy - sy, Graphics.TOP | Graphics.LEFT);
+            	g.clipRect(dx + x, dy, 1, dy + dheight);
+            	g.drawBitmap(source, scaleX, dy - sy, paintLeft);
                 scaleX = dx - sx - x * swidth / dwidth + x;
             }
         } else {
@@ -167,8 +173,8 @@ public class PImage {
             for (int y = 0; y < dheight; y++) {
                 int scaleX = dx - sx;
                 for (int x = 0; x < dwidth; x++) {
-                    g.setClip(dx + x, dy + y, 1, 1);
-                    g.drawImage(source, scaleX, scaleY, Graphics.TOP | Graphics.LEFT);
+                	g.clipRect(dx + x, dy + y, 1, 1);
+                	g.drawBitmap(source, scaleX, scaleY, paintLeft);
                     scaleX = dx - sx - x * swidth / dwidth + x;
                 }
                 scaleY = dy - sy - y * sheight / dheight + y;
@@ -176,7 +182,7 @@ public class PImage {
         }
     }
     
-    protected void draw(Graphics g, int x, int y) {
-        g.drawImage(image, x, y, Graphics.TOP | Graphics.LEFT);
+    protected void draw(Canvas g, int x, int y) {
+        g.drawBitmap(image, x, y, paintLeft);
     }
 }
