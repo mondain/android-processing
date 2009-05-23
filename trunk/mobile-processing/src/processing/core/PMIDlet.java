@@ -30,14 +30,16 @@ import javax.microedition.midlet.*;
 import javax.microedition.rms.*;
 
 import android.app.Activity;
+import android.graphics.Typeface;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.WindowManager;
 
 /**
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */
-public abstract class PMIDlet extends Activity implements Runnable, CommandListener {    
+public abstract class PMIDlet extends Activity {    
 	
     public static final int CENTER          = 0;
     public static final int CENTER_RADIUS   = 1;
@@ -54,18 +56,18 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
     public static final int QUAD_STRIP      = 7;
     public static final int POLYGON         = 8;
     
-    public static final int UP              = Canvas.UP;
-    public static final int DOWN            = Canvas.DOWN;
-    public static final int LEFT            = Canvas.LEFT;
-    public static final int RIGHT           = Canvas.RIGHT;
-    public static final int FIRE            = Canvas.FIRE;    
+    public static final int UP              = KeyEvent.KEYCODE_DPAD_UP;
+    public static final int DOWN            = KeyEvent.KEYCODE_DPAD_DOWN;
+    public static final int LEFT            = KeyEvent.KEYCODE_DPAD_LEFT;
+    public static final int RIGHT           = KeyEvent.KEYCODE_DPAD_RIGHT;
+    public static final int FIRE            = KeyEvent.KEYCODE_DPAD_CENTER;    
     public static final int GAME_A          = Canvas.GAME_A;
     public static final int GAME_B          = Canvas.GAME_B;
     public static final int GAME_C          = Canvas.GAME_C;
     public static final int GAME_D          = Canvas.GAME_D;
     public static final int SOFTKEY1        = -6;
     public static final int SOFTKEY2        = -7;
-    public static final int SEND            = -10;
+    public static final int SEND            = KeyEvent.KEYCODE_CALL;
     
     public static final String SOFTKEY1_NAME    = "SOFT1";
     public static final String SOFTKEY2_NAME    = "SOFT2";
@@ -75,10 +77,9 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
     public static final int FACE_MONOSPACE      = Font.FACE_MONOSPACE;
     public static final int FACE_PROPORTIONAL   = Font.FACE_PROPORTIONAL;
     
-    public static final int STYLE_PLAIN         = Font.STYLE_PLAIN;
-    public static final int STYLE_BOLD          = Font.STYLE_BOLD;
-    public static final int STYLE_ITALIC        = Font.STYLE_ITALIC;
-    public static final int STYLE_UNDERLINED    = Font.STYLE_UNDERLINED;
+    public static final int STYLE_PLAIN         = Typeface.NORMAL;
+    public static final int STYLE_BOLD          = Typeface.BOLD;
+    public static final int STYLE_ITALIC        = Typeface.ITALIC;
     
     public static final int SIZE_SMALL          = Font.SIZE_SMALL;
     public static final int SIZE_MEDIUM         = Font.SIZE_MEDIUM;
@@ -167,41 +168,16 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
         return canvas;
     }
     
-    public final void commandAction(Command c, Displayable d) {
-        if (c == cmdExit) {
-            exit();
-        } else if (c == cmdCustom) {
-            enqueueEvent(EVENT_SOFTKEY_PRESSED, 0, cmdCustom.getLabel());
-        }
-    }
-    
-    public void softkeyPressed(String softkey) {
-    }
-    
-    public final void softkey(String softkey) {
-        if (cmdCustom != null) {
-            canvas.removeCommand(cmdCustom);
-        }
-        if (softkey != null) {
-            cmdCustom = new Command(softkey, Command.SCREEN, 2);
-            canvas.addCommand(cmdCustom);
-        }
-    }
-    
-    public final void exit() {
-        try {
-            destroyApp(true);
-            notifyDestroyed();
-        } catch (MIDletStateChangeException msce) {                
-        }
-    }
-    
-    protected final void destroyApp(boolean unconditional) throws MIDletStateChangeException {
+    @Override
+	protected void onStop() {
+		super.onStop();
         running = false;
         destroy();
     }
     
-    protected final void pauseApp() {
+	@Override
+	protected void onPause() {
+		super.onPause();
         running = false;
     }
     
@@ -387,16 +363,16 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
         this.rawKeyCode = keyCode;
         //// MIDP 1.0 says the KEY_ values map to ASCII values, but I've seen it
         //// different on some foreign (i.e. Korean) handsets
-        if ((keyCode >= Canvas.KEY_NUM0) && (keyCode <= Canvas.KEY_NUM9)) {
-            key = (char) ('0' + (keyCode - Canvas.KEY_NUM0));
+        if ((keyCode >= KeyEvent.KEYCODE_0) && (keyCode <= KeyEvent.KEYCODE_9)) {
+            key = (char) ('0' + (keyCode - KeyEvent.KEYCODE_0));
             this.keyCode = (int) key;
         } else {
             switch (keyCode) {
-                case Canvas.KEY_POUND:
+                case KeyEvent.KEYCODE_POUND:
                     key = '#';
                     this.keyCode = (int) key;
                     break;
-                case Canvas.KEY_STAR:
+                case KeyEvent.KEYCODE_STAR:
                     key = '*';
                     this.keyCode = (int) key;
                     break;
@@ -569,7 +545,7 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
             case -8: //// Sun WTK 2.2 emulator
                 multitapDeleteChar();
                 break;
-            case Canvas.KEY_STAR:
+            case KeyEvent.KEYCODE_STAR:
                 if (multitapKeySettings[MULTITAP_KEY_SPACE] == '*') {
                     startChar = ' '; endChar = ' '; otherChar = '*';
                 } else if (multitapKeySettings[MULTITAP_KEY_UPPER] == '*') {
@@ -580,7 +556,7 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
                     editing = false;
                 }
                 break;
-            case Canvas.KEY_POUND:
+            case KeyEvent.KEYCODE_POUND:
                 if (multitapKeySettings[MULTITAP_KEY_SPACE] == '#') {
                     startChar = ' '; endChar = ' '; otherChar = '#';
                 } else if (multitapKeySettings[MULTITAP_KEY_UPPER] == '#') {
@@ -639,11 +615,11 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
             default:
                 int action = canvas.getGameAction(keyCode);
                 switch (action) {
-                    case Canvas.LEFT:
+                    case KeyEvent.KEYCODE_DPAD_LEFT:
                         multitapLastEdit = 0;
                         multitapBufferIndex = Math.max(0, multitapBufferIndex - 1);
                         break;
-                    case Canvas.RIGHT:
+                    case KeyEvent.KEYCODE_DPAD_RIGHT:
                         multitapLastEdit = 0;
                         multitapBufferIndex = Math.min(multitapBufferLength, multitapBufferIndex + 1);
                         break;
@@ -697,7 +673,7 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
     }
     
     public final boolean isColor() {
-        return display.isColor();
+        return true;
     }
     
     public final int numColors() {

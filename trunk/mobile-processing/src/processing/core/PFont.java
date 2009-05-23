@@ -23,34 +23,56 @@ package processing.core;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 
-import java.io.*;
-import javax.microedition.lcdui.*;
+import java.io.DataInputStream;
+import java.io.InputStream;
+
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.Typeface;
+import android.graphics.Paint.Align;
 
 /**
  * 
  */
 public class PFont {
-    public int      charCount;
+	
+    public int charCount;
     
-    public PImage   images[];
-    public char     value[];        // char code
-    public byte     heights[];       // height of the bitmap data
-    public byte     width[];        // width of bitmap data
-    public byte     setWidth[];     // width displaced by the char
-    public byte     topExtent[];    // offset for the top
-    public byte     leftExtent[];   // offset for the left
+    public PImage images[];
+    public char value[];        // char code
+    public byte heights[];       // height of the bitmap data
+    public byte width[];        // width of bitmap data
+    public byte setWidth[];     // width displaced by the char
+    public byte topExtent[];    // offset for the top
+    public byte leftExtent[];   // offset for the left
 
-    protected int   ascii[];        // quick lookup for the ascii chars
+    protected int ascii[];        // quick lookup for the ascii chars
     
-    public final int    baseline;
-    public final int    height;
+    public final int baseline;
+    public final int height;
     
-    public Font     font;
+    public Paint font;
     
-    public PFont(Font font) {
+    public static Paint defaultTextPaint = new Paint();
+    
+    static {
+    	defaultTextPaint.setAntiAlias(true);
+    	defaultTextPaint.setColor(Color.WHITE);
+    	defaultTextPaint.setLinearText(true);
+    	defaultTextPaint.setTextSize(12f);
+    	defaultTextPaint.setTypeface(Typeface.DEFAULT);
+    }
+    
+    public PFont(Paint font) {
         this.font = font;
-        height = font.getHeight();
-        baseline = font.getBaselinePosition();
+        Rect bounds = new Rect();
+        //use the tallest character
+        font.getTextBounds("I", 0, 1, bounds);        
+        height = bounds.height();
+        //ascent returns negative, we want pixel distance
+        baseline = Math.abs((int) font.ascent());
     }
     
     public PFont(InputStream is, int color, int bgcolor) {
@@ -168,7 +190,7 @@ public class PFont {
     public int charsWidth(char[] ch, int offset, int length) {
         int result = 0;
         if (font != null) {
-            result = font.charsWidth(ch, offset, length);
+        	result = (int) font.measureText(ch, offset, length);
         } else {
             int index;
             for (int i = offset, end = offset + length; i < end; i++) {
@@ -186,7 +208,8 @@ public class PFont {
     public int charWidth(char ch) {
         int result;
         if (font != null) {
-            result = font.charWidth(ch);
+        	char[] chars = new char[]{ch};
+        	result = (int) font.measureText(String.valueOf(chars));
         } else {
             int index = getIndex(ch);
             if (index >= 0) {
@@ -202,7 +225,7 @@ public class PFont {
     public int stringWidth(String str) {
         int result;
         if (font != null) {
-            result = font.stringWidth(str);
+        	result = (int) font.measureText(str);
         } else {
             result = substringWidth(str, 0, str.length());
         }
@@ -212,7 +235,7 @@ public class PFont {
     public int substringWidth(String str, int offset, int length) {
         int result = 0;
         if (font != null) {
-            result = font.substringWidth(str, offset, length);
+        	result = (int) font.measureText(str, offset, (offset + length));
         } else {
             int index;
             for (int i = offset, end = offset + length; i < end; i++) {
@@ -227,19 +250,19 @@ public class PFont {
         return result;
     }
     
-    public void draw(Graphics g, String str, int x, int y, int textAlign) {
+    public void draw(Canvas g, String str, int x, int y, int textAlign) {
         if (font != null) {
             //// system font
-            g.setFont(font);
-            int align = Graphics.TOP;
+        	g.drawPaint(font);
+            Align align = Align.LEFT;
             if (textAlign == PMIDlet.CENTER) {
-                align |= Graphics.HCENTER;
+                align = Align.CENTER;
             } else if (textAlign == PMIDlet.RIGHT) {
-                align |= Graphics.RIGHT;
-            } else {
-                align |= Graphics.LEFT;
+                align = Align.RIGHT;
             }
-            g.drawString(str, x, y - font.getBaselinePosition(), align);
+            Rect bounds = new Rect();
+            font.getTextBounds(str, 0, str.length(), bounds);            
+            g.drawText(str, (float) x, (float) y - bounds.height(), align);
         } else {
             if (textAlign != PMIDlet.LEFT) {
                 int width = stringWidth(str);
@@ -255,7 +278,7 @@ public class PFont {
                 c = str.charAt(i);
                 index = getIndex(c);
                 if (index >= 0) {
-                    g.drawImage(images[index].image, x + leftExtent[index], y - topExtent[index], Graphics.TOP | Graphics.LEFT);
+                    g.drawBitmap(images[index].image, (float) x + leftExtent[index], (float) y - topExtent[index], Align.LEFT);
                     x += setWidth[index];
                 } else {
                     x += setWidth[ascii['i']];
