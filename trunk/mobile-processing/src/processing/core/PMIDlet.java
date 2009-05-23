@@ -30,12 +30,15 @@ import javax.microedition.midlet.*;
 import javax.microedition.rms.*;
 
 import android.app.Activity;
+import android.view.Display;
+import android.view.WindowManager;
 
 /**
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */
 public abstract class PMIDlet extends Activity implements Runnable, CommandListener {    
+	
     public static final int CENTER          = 0;
     public static final int CENTER_RADIUS   = 1;
     public static final int CORNER          = 2;
@@ -150,7 +153,13 @@ public abstract class PMIDlet extends Activity implements Runnable, CommandListe
     
     /** Creates a new instance of PMIDlet */
     public PMIDlet() {
-        display = Display.getDisplay(this);
+    }
+    	
+	@Override
+	protected void onStart() {
+		super.onStart();    	    	
+        WindowManager w = getWindowManager(); 
+        display = w.getDefaultDisplay(); 
         runtime = Runtime.getRuntime();
     }
     
