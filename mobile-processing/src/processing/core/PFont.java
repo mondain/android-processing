@@ -32,11 +32,14 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.Paint.Align;
+import android.util.Log;
 
 /**
  * 
  */
 public class PFont {
+	
+	private static final String tag = "PFont";
 	
     public int charCount;
     
@@ -57,7 +60,13 @@ public class PFont {
     
     public static Paint defaultTextPaint = new Paint();
     
+    //Paint objects to use with LEFT, RIGHT, or CENTER
+    private Paint paintLeft;
+    private Paint paintRight;
+    private Paint paintCenter;    
+    
     static {
+    	//create a static default "font"
     	defaultTextPaint.setAntiAlias(true);
     	defaultTextPaint.setColor(Color.WHITE);
     	defaultTextPaint.setLinearText(true);
@@ -67,15 +76,26 @@ public class PFont {
     
     public PFont(Paint font) {
         this.font = font;
+        //use bounds rect to determine height
         Rect bounds = new Rect();
         //use the tallest character
         font.getTextBounds("I", 0, 1, bounds);        
         height = bounds.height();
         //ascent returns negative, we want pixel distance
         baseline = Math.abs((int) font.ascent());
+        //create left, right, and center versions
+    	paintLeft = new Paint(font);
+    	paintLeft.setTextAlign(Align.LEFT); 
+    	paintRight = new Paint(font);
+    	paintRight.setTextAlign(Align.RIGHT); 
+    	paintCenter = new Paint(font);
+    	paintCenter.setTextAlign(Align.CENTER); 
     }
     
     public PFont(InputStream is, int color, int bgcolor) {
+    	//set default paint left in case font is not set
+    	paintLeft = new Paint(defaultTextPaint);
+    	paintLeft.setTextAlign(Align.LEFT);
         try {
             DataInputStream dis = new DataInputStream(is);
 
@@ -83,6 +103,7 @@ public class PFont {
             charCount = dis.readInt();
             // version of format
             int version = dis.readInt();
+            Log.d(tag, "Version: " + version);
 
             // allocate enough space for the character info
             value       = new char[charCount];
@@ -172,17 +193,12 @@ public class PFont {
 
     private int getIndex(int c, int start, int stop) {
         int pivot = (start + stop) / 2;
-
         // if this is the char, then return it
         if (c == value[pivot]) return pivot;
-
         // char doesn't exist, otherwise would have been the pivot
-        //if (start == stop) return -1;
         if (start >= stop) return -1;
-
         // if it's in the lower half, continue searching that
         if (c < value[pivot]) return getIndex(c, start, pivot-1);
-
         // if it's in the upper half, continue there
         return getIndex(c, pivot+1, stop);
     }
@@ -252,14 +268,15 @@ public class PFont {
     
     public void draw(Canvas g, String str, int x, int y, int textAlign) {
         if (font != null) {
-            //// system font
-        	g.drawPaint(font);
-            Align align = Align.LEFT;
+            Paint align = paintLeft;
             if (textAlign == PMIDlet.CENTER) {
-                align = Align.CENTER;
+                align = paintCenter;
             } else if (textAlign == PMIDlet.RIGHT) {
-                align = Align.RIGHT;
+                align = paintRight;
             }
+            //set our paint
+        	g.drawPaint(align);
+        	//create bounds to determine height
             Rect bounds = new Rect();
             font.getTextBounds(str, 0, str.length(), bounds);            
             g.drawText(str, (float) x, (float) y - bounds.height(), align);
@@ -278,7 +295,7 @@ public class PFont {
                 c = str.charAt(i);
                 index = getIndex(c);
                 if (index >= 0) {
-                    g.drawBitmap(images[index].image, (float) x + leftExtent[index], (float) y - topExtent[index], Align.LEFT);
+                    g.drawBitmap(images[index].image, (float) x + leftExtent[index], (float) y - topExtent[index], paintLeft);
                     x += setWidth[index];
                 } else {
                     x += setWidth[ascii['i']];
