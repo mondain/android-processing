@@ -153,7 +153,8 @@ g.drawLine(startX, startY, stopX, stopY);
 
 _Android_
 {{{
-//strokeColor in this case is a Paint with the color and stroke width set. g.drawLine(startX, startY, stopX, stopY, strokeColor);
+//strokeColor in this case is a Paint with the color and stroke width set. 
+g.drawLine(startX, startY, stopX, stopY, strokeColor);
 }}}
 
 11. Fill a rectangle - for midp the fill color is an int, for android it is a Paint with color and a style of "fill" set.
