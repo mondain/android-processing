@@ -23,8 +23,20 @@ package processing.core;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 
-import java.io.*;
-import org.apache.http.HttpConnection;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.http.Header;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.params.HttpParams;
 
 /**
  * The <b>PRequest</b> object represents an active network request. They are
@@ -126,7 +138,9 @@ public class PRequest extends InputStream implements Runnable {
 	protected String contentType;
 	protected byte[] bytes;
 
-	protected HttpConnection con;
+	protected DefaultHttpClient client;
+	protected HttpRequestBase request;
+	
 	protected InputStream is;
 
 	protected String authorization;
@@ -154,27 +168,37 @@ public class PRequest extends InputStream implements Runnable {
 		OutputStream os = null;
 		try {
 			if (is == null) {
-				// // open connection to server
-				con = (HttpConnection) Connector.open(url);
+				//instance the client
+				client = new DefaultHttpClient();
+				HttpParams params = client.getParams();
+				//open connection to server
+				//request type depends on content type var
 				if (contentType != null) {
-					con.setRequestMethod(HttpConnection.POST);
-					con.setRequestProperty("Content-Type", contentType);
+					request = new HttpPost(url);
+					//which content types are posted?					
+					params.setParameter("Content-Type", contentType);
+					//if it were a string type
+					//StringEntity(String s, String charset)
+					//assume byte array type?
+					if (bytes != null) {
+						//ByteArrayEntity entity = new ByteArrayEntity(bytes);
+						//request.setRequestEntity(entity);
+						os = con.openOutputStream();
+						os.write(bytes);
+						//we can release the request bytes and reuse the
+						// reference
+						bytes = null;
+					}
 				} else {
-					con.setRequestMethod(HttpConnection.GET);
+					request = new HttpGet(url);
 				}
-				con.setRequestProperty("Connection", "close");
 				if (authorization != null) {
-					con.setRequestProperty("Authorization", authorization);
+					params.setParameter("Authorization", authorization);
 				}
-				if (bytes != null) {
-					os = con.openOutputStream();
-					os.write(bytes);
-					// // we can release the request bytes and reuse the
-					// reference
-					bytes = null;
-				}
-				// // now, open inputstream, committing the post
-				is = con.openInputStream();
+				params.setParameter("Connection", "close");
+				request.setParams(params);
+				//now, open inputstream, committing the post
+				is = con.openInputStream(); 
 				// // done, notify midlet
 				boolean notify = false;
 				synchronized (this) {
@@ -301,12 +325,15 @@ public class PRequest extends InputStream implements Runnable {
 			}
 			is = null;
 		}
-		if (con != null) {
+		if (client != null) {
 			try {
-				con.close();
-			} catch (IOException ioe) {
+				ClientConnectionManager mgr = client.getConnectionManager();
+				mgr.closeExpiredConnections();
+				mgr.closeIdleConnections(1, TimeUnit.SECONDS);
+				mgr.shutdown();
+			} catch (Exception ioe) {
 			}
-			con = null;
+			client = null;
 		}
 	}
 }
