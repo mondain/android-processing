@@ -22,11 +22,16 @@
  */
 package processing.core;
 
-import android.graphics.Canvas;
-import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
+import java.util.Vector;
 
-import java.util.*;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.Bitmap.Config;
+import android.graphics.Paint.Style;
 
 /**
  * 
@@ -45,13 +50,13 @@ public class PCanvas extends Canvas {
 	
     //// the following two fields are public static so that PImage and its subclasses can access them
     //// without requiring a reference
-    public static Bitmap     buffer;
+    public static Bitmap    buffer;
     public static int       imageMode;
     
     protected PMIDlet       midlet;
     protected boolean       suspended;
     
-    protected Graphics      bufferg;
+    protected Canvas      	bufferg;
     
     protected int           width;
     protected int           height;
@@ -65,10 +70,10 @@ public class PCanvas extends Canvas {
     
     protected boolean       stroke;
     protected int           strokeWidth;
-    protected int           strokeColor;
+    protected Paint         strokeColor;
     
     protected boolean       fill;
-    protected int           fillColor;
+    protected Paint         fillColor;
     
     protected int           rectMode;
     protected int           ellipseMode;
@@ -93,19 +98,23 @@ public class PCanvas extends Canvas {
         width = getWidth();
         height = getHeight();
         
-        buffer = Bitmap.createBitmap(width, height, Config.RGB_565);
-        bufferg = buffer.getGraphics();        
+        buffer = Bitmap.createBitmap(width, height, Config.ARGB_8888);
+        bufferg = new Canvas(buffer);       
         
         colorMode = PMIDlet.RGB;
         colorModeRGB255 = true;
         colorMaxX = colorMaxY = colorMaxZ = colorMaxA = 255;
         
         stroke = true;
-        strokeColor = 0;
+        strokeColor = new Paint();
+        strokeColor.setColor(Color.BLACK);
+        strokeColor.setStrokeWidth(1f);
         strokeWidth = 1;
         
         fill = true;
-        fillColor = 0xFFFFFF;
+        fillColor = new Paint();
+        fillColor.setColor(Color.WHITE);
+        fillColor.setStyle(Style.FILL);
         
         rectMode = PMIDlet.CORNER;
         ellipseMode = PMIDlet.CENTER;
@@ -128,14 +137,9 @@ public class PCanvas extends Canvas {
     protected void reset() {
         resetMatrix();
     }
-    
-    protected void flush() {
-        repaint();
-        serviceRepaints();    
-    }
-
-    protected void paint(Graphics g) {
-        g.drawImage(buffer, 0, 0, Graphics.LEFT | Graphics.TOP);
+ 
+    protected void paint(Canvas g) {
+        g.drawBitmap(buffer, 0, 0, null);
     }
     
     protected void keyPressed(int keyCode) {
@@ -166,15 +170,13 @@ public class PCanvas extends Canvas {
     
     public void point(int x1, int y1) {
         if (stroke) {
-            bufferg.setColor(strokeColor);
-            bufferg.drawLine(x1, y1, x1, y1);
+        	bufferg.drawPoint(x1, y1, strokeColor);
         }
     }
     
     public void line(int x1, int y1, int x2, int y2) {
         if (stroke) {
-            bufferg.setColor(strokeColor);
-            bufferg.drawLine(x1, y1, x2, y2);
+            bufferg.drawLine(x1, y1, x2, y2, strokeColor);
             if (strokeWidth > 1) {
                 boolean steep = Math.abs(y2 - y1) > Math.abs(x2 - x1);
                 if (steep) {
@@ -205,10 +207,14 @@ public class PCanvas extends Canvas {
                     ystep = -1;
                 }
                 for (int x = x1 - halfWidth, endx = x2 - halfWidth; x <= endx; x++) {
-                    if (steep) {
-                        bufferg.fillArc(y, x, strokeWidth, strokeWidth, 0, 360);
+                	if (steep) {
+                    	RectF oval = new RectF();
+                    	oval.set(y, x, y + strokeWidth, x + strokeWidth);
+                    	bufferg.drawArc(oval, 0, 360, false, fillColor);                     	
                     } else {
-                        bufferg.fillArc(x, y, strokeWidth, strokeWidth, 0, 360);
+                    	RectF oval = new RectF();
+                    	oval.set(x, y, x + strokeWidth, y + strokeWidth);
+                    	bufferg.drawArc(oval, 0, 360, false, fillColor);                     	
                     }
                     error += dy;
                     if ((2 * error) >= dx) {
@@ -263,12 +269,11 @@ public class PCanvas extends Canvas {
                 break;
         }
         if (fill) {
-            bufferg.setColor(fillColor);
-            bufferg.fillRect(x, y, width, height);
+        	//draw and fill
+        	bufferg.drawRect(x, y, x + width, y + height, fillColor);
         }
         if (stroke) {
-            bufferg.setColor(strokeColor);
-            bufferg.drawRect(x, y, width, height);
+        	bufferg.drawRect(x, y, x + width, y + height, strokeColor);
         }
     }
     
@@ -301,12 +306,14 @@ public class PCanvas extends Canvas {
                 break;
         }
         if (fill) {
-            bufferg.setColor(fillColor);
-            bufferg.fillArc(x, y, width, height, 0, 360);
+        	RectF oval = new RectF();
+        	oval.set(x, y, x + width, y + height);
+        	bufferg.drawArc(oval, 0, 360, false, fillColor);        	
         }
         if (stroke) {
-            bufferg.setColor(strokeColor);
-            bufferg.drawArc(x, y, width, height, 0, 360);
+        	RectF oval = new RectF();
+        	oval.set(x, y, x + width, y + height);
+        	bufferg.drawArc(oval, 0, 360, false, strokeColor);        	
         }
     }
     
@@ -336,6 +343,7 @@ public class PCanvas extends Canvas {
     
     public void strokeWeight(int width) {
         strokeWidth = width;
+        strokeColor.setStrokeWidth(width * 1.0f);
     }
     
     public void beginShape(int MODE) {
@@ -424,8 +432,6 @@ public class PCanvas extends Canvas {
             //// make sure at least 3 vertices for fill
             if (endIndex >= (startIndex + 4)) {
                 if (fill) {
-                    bufferg.setColor(fillColor);
-                    
                     //// insertion sort of edges from top-left to bottom right
                     Vector edges = new Vector();
                     int edgeCount = 0;
@@ -553,13 +559,12 @@ public class PCanvas extends Canvas {
                             e1 = (int[]) active.elementAt(i - 1);
                             e2 = (int[]) active.elementAt(i);
                             
-                            bufferg.drawLine(e1[EDGE_X], y, e2[EDGE_X], y);
+                            bufferg.drawLine(e1[EDGE_X], y, e2[EDGE_X], y, fillColor);
                         }
                     }
                 }
             }
             if (stroke) {
-                bufferg.setColor(strokeColor);
                 for (int i = startIndex + 2; i <= endIndex; i += 2) {
                     line(vertex[i - 2], vertex[i - 1], vertex[i], vertex[i + 1]);
                 }
@@ -710,22 +715,23 @@ public class PCanvas extends Canvas {
     
     public void resetMatrix() {
         stackIndex = 0;
-        bufferg.translate(-bufferg.getTranslateX(), -bufferg.getTranslateY());
-        bufferg.setClip(0, 0, width, height);
+        //midp version
+        //bufferg.translate(-bufferg.getTranslateX(), -bufferg.getTranslateY());
+        //bufferg.setClip(0, 0, width, height);
+        bufferg.getMatrix().reset();
+        bufferg.clipRect(0, 0, width, height);
     }
     
     public void background(int gray) {
         if (((gray & 0xff000000) == 0) && (gray <= colorMaxX)) {
-            bufferg.setColor(color(gray, colorMaxA));
+        	bufferg.drawColor(color(gray, colorMaxA));
         } else {
-            bufferg.setColor(gray);
+            bufferg.drawColor(gray);
         }    
-        bufferg.fillRect(0, 0, width, height);
     }
     
     public void background(int value1, int value2, int value3) {
-        bufferg.setColor(color(value1, value2, value3));
-        bufferg.fillRect(0, 0, width, height);
+    	bufferg.drawColor(color(value1, value2, value3));
     }
     
     public void background(PImage img) {
@@ -908,15 +914,15 @@ public class PCanvas extends Canvas {
     public void stroke(int gray) {
         stroke = true;
         if (((gray & 0xff000000) == 0) && (gray <= colorMaxX)) {
-            strokeColor = color(gray, colorMaxA);
+            strokeColor.setColor(color(gray, colorMaxA));
         } else {
-            strokeColor = gray;
+            strokeColor.setColor(gray);
         }
     }
     
     public void stroke(int value1, int value2, int value3) {
         stroke = true;
-        strokeColor = color(value1, value2, value3, colorMaxA);
+        strokeColor.setColor(color(value1, value2, value3, colorMaxA));
     }
     
     public void noStroke() {
@@ -926,15 +932,15 @@ public class PCanvas extends Canvas {
     public void fill(int gray) {
         fill = true;
         if (((gray & 0xff000000) == 0) && (gray <= colorMaxX)) {
-            fillColor = color(gray, colorMaxA);
+            fillColor.setColor(color(gray, colorMaxA));
         } else {
-            fillColor = gray;
+            fillColor.setColor(gray);
         }    
     }
     
     public void fill(int value1, int value2, int value3) {
         fill = true;
-        fillColor = color(value1, value2, value3, colorMaxA);
+        fillColor.setColor(color(value1, value2, value3, colorMaxA));
     }
     
     public void noFill() {
@@ -1006,7 +1012,7 @@ public class PCanvas extends Canvas {
         //// working character
         char c;                
         //// vector of lines
-        Vector lines = new Vector();
+        Vector<String> lines = new Vector<String>();
         //// current line
         char[] line = new char[256];
         //// number of characters in current line
@@ -1115,8 +1121,8 @@ public class PCanvas extends Canvas {
         this.width = midlet.width = width;
         this.height = midlet.height = height;
         
-        buffer = Image.createImage(width, height);
-        bufferg = buffer.getGraphics();    
+        buffer = Bitmap.createBitmap(width, height, Config.ARGB_8888);
+        bufferg = new Canvas(buffer);   
         
         background(200);
     }
