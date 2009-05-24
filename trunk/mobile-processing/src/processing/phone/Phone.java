@@ -23,7 +23,6 @@ package processing.phone;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 
-import processing.core.PCanvas;
 import processing.core.PMIDlet;
 import android.R;
 import android.content.Context;
@@ -37,13 +36,11 @@ import android.webkit.WebView;
 public class Phone {
 
 	private PMIDlet midlet;
-	private PCanvas canvas;
 	private Context context;
 	private WebView webView;
 
 	public Phone(PMIDlet midlet) {
 		this.midlet = midlet;
-		this.canvas = midlet.canvas;
 	}
 
 	public int numAlphaLevels() {
@@ -52,14 +49,10 @@ public class Phone {
 
 	public void fullscreen() {
 		midlet.setTheme(R.style.Theme_Black_NoTitleBar_Fullscreen);
-		midlet.width = canvas.getWidth();
-		midlet.height = canvas.getHeight();
 	}
 
 	public void noFullscreen() {
 		midlet.setTheme(R.style.Theme_Black);
-		midlet.width = canvas.getWidth();
-		midlet.height = canvas.getHeight();
 	}
 
 	public boolean vibrate(long duration) {
