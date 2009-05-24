@@ -1100,7 +1100,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
 
                 int numStrings = 0;
 
-                StringBuffer buffer = new StringBuffer();
+                StringBuilder buffer = new StringBuilder();
                 int input = r.read();
                 while (true) {
                     if ((input < 0) || (input == '\n')) {
@@ -1259,7 +1259,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     }
     
     public final String join(String[] anyArray, String separator) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         for (int i = 0, length = anyArray.length; i < length; i++) {
             buffer.append(anyArray[i]);
             if (i < (length - 1)) {
@@ -1270,7 +1270,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     }
     
     public final String join(int[] anyArray, String separator) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         for (int i = 0, length = anyArray.length; i < length; i++) {
             buffer.append(anyArray[i]);
             if (i < (length - 1)) {
@@ -1281,7 +1281,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     }
     
     public final String join(int[] intArray, String separator, int digits) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         for (int i = 0, length = intArray.length; i < length; i++) {
             buffer.append(nf(intArray[i], digits));
             if (i < (length - 1)) {
@@ -1292,7 +1292,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     }
     
     public final String nf(int intValue, int digits) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         for (int j = Integer.toString(intValue).length(); j < digits; j++) {
             buffer.append("0");
         }        
@@ -1301,7 +1301,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     }
     
     public final String nfp(int intValue, int digits) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         if (intValue < 0) {
             buffer.append("-");
         } else {
@@ -1312,7 +1312,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     }
     
     public final String nfs(int intValue, int digits) {
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         if (intValue < 0) {
             buffer.append("-");
         } else {
@@ -1324,7 +1324,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
     
     public final String[] split(String str) {
         Vector v = new Vector();
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         char c;
         boolean whitespace = false;
         for (int i = 0, length = str.length(); i < length; i++ ) {
@@ -3876,7 +3876,7 @@ public abstract class PMIDlet extends MIDlet implements Runnable, CommandListene
             int millis = millis();
             if (password) {
                 if ((masked == null) || (masked.length() != text.length())) {
-                    StringBuffer buffer = new StringBuffer();
+                    StringBuilder buffer = new StringBuilder();
                     for (int i = 0, length = text.length(); i < length; i++) {
                         buffer.append('*');
                     }

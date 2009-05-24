@@ -23,12 +23,16 @@ package processing.core;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -36,6 +40,9 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
+
+import android.util.Log;
 
 /**
  * The <b>PRequest</b> object represents an active network request. They are
@@ -51,6 +58,8 @@ import org.apache.http.params.HttpParams;
  */
 public class PRequest extends InputStream implements Runnable {
 
+	private static final String tag = "PRequest";
+	
 	/**
 	 * Constant value representing that the request is being sent to the server,
 	 * waiting for reply
@@ -164,9 +173,8 @@ public class PRequest extends InputStream implements Runnable {
 
 	/** @hidden */
 	public void run() {
-		OutputStream os = null;
 		try {
-			if (is == null) {
+			if (client == null) {
 				//instance the client
 				client = new DefaultHttpClient();
 				HttpParams params = client.getParams();
@@ -192,9 +200,9 @@ public class PRequest extends InputStream implements Runnable {
 				}
 				params.setParameter("Connection", "close");
 				request.setParams(params);
-				//now, open inputstream, committing the post
-				is = con.openInputStream(); 
-				// // done, notify midlet
+				//
+				client.execute(request, new StateResponseHandler<Integer>());
+				// done, notify midlet
 				boolean notify = false;
 				synchronized (this) {
 					if (state == STATE_OPENED) {
@@ -213,7 +221,7 @@ public class PRequest extends InputStream implements Runnable {
 						throw new Exception("Not connected.");
 					}
 				}
-				// // read the response
+				// read the response
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				byte[] buffer = new byte[1024];
 				int bytesRead = is.read(buffer);
@@ -223,7 +231,7 @@ public class PRequest extends InputStream implements Runnable {
 				}
 				buffer = null;
 				buffer = baos.toByteArray();
-				// // done, notify midlet
+				// done, notify midlet
 				boolean notify = false;
 				synchronized (this) {
 					if (state == STATE_FETCHING) {
@@ -250,13 +258,7 @@ public class PRequest extends InputStream implements Runnable {
 				midlet.enqueueLibraryEvent(this, EVENT_ERROR, e.getMessage());
 			}
 		} finally {
-			if (os != null) {
-				try {
-					os.close();
-				} catch (Exception e) {
-				}
-				os = null;
-			}
+
 		}
 	}
 
@@ -331,4 +333,33 @@ public class PRequest extends InputStream implements Runnable {
 			client = null;
 		}
 	}
+	
+	@SuppressWarnings("hiding")
+	private class StateResponseHandler<Integer> implements ResponseHandler<Integer> {
+
+		@Override
+		public Integer handleResponse(HttpResponse response)
+				throws ClientProtocolException, IOException {
+			//get the response code
+			int statusCode = response.getStatusLine().getStatusCode();
+			switch (statusCode) {
+			case 200: //Ok
+				//look for an entity
+				HttpEntity entity = response.getEntity();
+				if (entity instanceof ByteArrayEntity) {
+					bytes = EntityUtils.toByteArray(entity);
+					//create an input stream for reading our bytes
+					is = new ByteArrayInputStream(bytes);
+				} else {
+					Log.d(tag, "Response: " + EntityUtils.toString(entity));
+				}
+			
+				break;
+			
+			}
+			return null;
+		}
+		
+	}
+	
 }
