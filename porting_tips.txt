@@ -1,0 +1,143 @@
+[Porting Tips]
+
+Common:
+	color == int
+	width & height == int
+	pixels == int[]
+
+Midp:
+	image == javax.microedition.lcdui.Image
+	g == javax.microedition.lcdui.Graphics
+
+Android:
+	image == android.graphics.Bitmap
+	g == android.graphics.Canvas
+
+
+1. Fill an "image" with a given color
+
+Midp:
+        Graphics g = image.getGraphics();
+        g.setColor(color);
+        g.fillRect(0, 0, width, height);
+
+Android:
+        Canvas g = new Canvas(image);
+        g.drawColor(color);
+
+
+2. Load PNG bytes into an image
+
+Midp:
+        image = Image.createImage(png, offset, length);
+
+Android:
+       	image = BitmapFactory.decodeByteArray(png, offset, length);
+
+
+3. Obtain a means to manipulate the image
+
+Midp:
+        Graphics g = image.getGraphics();
+
+Android:
+        Canvas g = new Canvas(image);
+
+
+4. Provide alignment
+
+Midp: 
+		Graphics.TOP | Graphics.LEFT
+
+Android:
+		//default alignment for Paint is left 
+		Paint align = new Paint();
+		
+
+5. Draw an image on top of another image
+
+Midp:
+        Graphics g = tmpImage.getGraphics();
+        g.drawImage(image, x, y, Graphics.TOP | Graphics.LEFT);
+
+Android:
+		Canvas g = new Canvas(tmpImage);
+		g.drawBitmap(image, x, y, align);
+
+
+6. Clipping
+
+Midp:       
+		//x, y, width, height 	
+        g.setClip(x, y, width, height);
+
+Android:
+        //left, top, right, bottom
+        g.clipRect(x, y, x + width, y + height);
+
+
+7. Get pixel data values
+
+Midp:
+        image.getRGB(pixels, offset, width, x, y, width, height);
+
+Android:
+        image.getPixels(pixels, offset, stride, x, y, width, height)
+
+
+8. Set pixel data values 
+
+Midp:
+        g.drawRGB(pixels, offset, width, x, y, width, height, processAlpha);
+
+Android:
+    	g.drawBitmap(pixels, offset, stride, x, y, width, height, hasAlpha, paint)
+
+
+9. Draw a point
+
+Midp:
+        bufferg.setColor(strokeColor);
+        bufferg.drawLine(startX, startY, startX, startY);
+
+Android:
+		//strokeColor in this case is a Paint with the color and stroke width set
+       	bufferg.drawPoint(startX, startY, strokeColor);
+
+
+10. Draw a line
+
+Midp:
+        bufferg.setColor(strokeColor);
+        bufferg.drawLine(startX, startY, stopX, stopY);
+
+Android:
+		//strokeColor in this case is a Paint with the color and stroke width set
+       	bufferg.drawLine(startX, startY, stopX, stopY, strokeColor);
+
+
+11. Fill a rectangle - for midp the fill color is an int, for android it is a Paint with color and a style of "fill" set.
+If the fill style is not set then only the outline will be drawn.
+
+Midp:
+		g.setColor(fillColor);
+        g.fillRect(x, y, width, height);
+
+Android:
+		g.drawRect(x, y, x + width, y + height, fillColor);
+
+
+12. Draw an arc
+
+Midp:
+        g.setColor(strokeColor);
+        g.drawArc(x, y, width, height, 0, 360);
+
+Android:
+       	RectF oval = new RectF();
+       	oval.set(x, y, x + width, y + height);
+       	g.drawArc(oval, 0, 360, false, strokeColor);
+
+
+
+

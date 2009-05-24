@@ -265,6 +265,10 @@ public class PFont {
         }
         return result;
     }
+
+    public void draw(Canvas g, String str, int x, int y, Paint color) {
+    	g.drawText(str, x, y, color);
+    }
     
     public void draw(Canvas g, String str, int x, int y, int textAlign) {
         if (font != null) {

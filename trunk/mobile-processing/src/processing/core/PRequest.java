@@ -39,6 +39,7 @@ import org.apache.http.HttpConnection;
  * @author Paul Gregoire (mondain@gmail.com)
  */
 public class PRequest extends InputStream implements Runnable {
+
 	/**
 	 * Constant value representing that the request is being sent to the server,
 	 * waiting for reply
@@ -47,6 +48,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int STATE_OPENED = 0;
+
 	/**
 	 * Constant value representing that the request has been received and a
 	 * response is available.
@@ -55,6 +57,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int STATE_CONNECTED = 1;
+	
 	/**
 	 * Constant value representing that the response is being fetched from the
 	 * server.
@@ -63,6 +66,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int STATE_FETCHING = 2;
+	
 	/**
 	 * Constant value representing that the entire response has been read.
 	 * 
@@ -70,6 +74,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int STATE_DONE = 3;
+	
 	/**
 	 * Constant value representing that an error occurred and the connection has
 	 * been closed.
@@ -78,6 +83,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int STATE_ERROR = 4;
+	
 	/**
 	 * Constant value representing that connection has been closed and resources
 	 * have been released.
@@ -95,6 +101,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int EVENT_CONNECTED = 0;
+	
 	/**
 	 * Event fired when the entire response has been read and is available. The
 	 * data object will be an array of bytes (byte[]) containing the data.
@@ -103,6 +110,7 @@ public class PRequest extends InputStream implements Runnable {
 	 * @thisreftext the PRequest class
 	 */
 	public static final int EVENT_DONE = 1;
+	
 	/**
 	 * Event fired when an error has occurred. The data object will be a String
 	 * containing an error message.
