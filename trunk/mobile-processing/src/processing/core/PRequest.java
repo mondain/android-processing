@@ -29,13 +29,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.Header;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpParams;
 
 /**
@@ -177,14 +176,10 @@ public class PRequest extends InputStream implements Runnable {
 					request = new HttpPost(url);
 					//which content types are posted?					
 					params.setParameter("Content-Type", contentType);
-					//if it were a string type
-					//StringEntity(String s, String charset)
-					//assume byte array type?
+					//create a byte array entity and add to post
 					if (bytes != null) {
-						//ByteArrayEntity entity = new ByteArrayEntity(bytes);
-						//request.setRequestEntity(entity);
-						os = con.openOutputStream();
-						os.write(bytes);
+						ByteArrayEntity entity = new ByteArrayEntity(bytes);
+						((HttpPost) request).setEntity(entity);
 						//we can release the request bytes and reuse the
 						// reference
 						bytes = null;
