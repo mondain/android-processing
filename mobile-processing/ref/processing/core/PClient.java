@@ -76,7 +76,7 @@ public class PClient {
      * @hidden
      */
     public static String urlencode(String str) {
-        StringBuffer encoded = new StringBuffer();
+        StringBuilder encoded = new StringBuilder();
         char c;
         for (int i = 0, length = str.length(); i < length; i++) {
             c = str.charAt(i);
@@ -110,7 +110,7 @@ public class PClient {
     }
         
     public PRequest GET(String file, String[] params, String[] values) {        
-        StringBuffer query = new StringBuffer();
+        StringBuilder query = new StringBuilder();
         query.append(file);
         query.append("?");
         for (int i = 0, length = params.length; i < length; i++) {
@@ -187,7 +187,7 @@ public class PClient {
     
     protected PRequest request(String file, String contentType, byte[] bytes) {
         //// create url
-        StringBuffer url = new StringBuffer();
+        StringBuilder url = new StringBuilder();
         url.append("http://");
         url.append(server);
         if (port != 80) {
@@ -235,17 +235,17 @@ public class PClient {
 
     /** Encodes the part of the given byte array denoted by start and
      * len to the Base64 format.  The encoded data is appended to the
-     * given StringBuffer. If no StringBuffer is given, a new one is
-     * created automatically. The StringBuffer is the return value of
+     * given StringBuilder. If no StringBuilder is given, a new one is
+     * created automatically. The StringBuilder is the return value of
      * this method. This is a static method that can
      * be accessed anywhere without instantiating a PClient object.
      * 
-     * @returns StringBuffer
+     * @returns StringBuilder
      * @hidden
      */
-    public static StringBuffer encode(byte[] data, int start, int len, StringBuffer buf) {
+    public static StringBuilder encode(byte[] data, int start, int len, StringBuilder buf) {
         if (buf == null) {
-            buf = new StringBuffer(data.length * 3 / 2);
+            buf = new StringBuilder(data.length * 3 / 2);
         }
 
         int end = len - 3;
