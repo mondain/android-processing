@@ -25,15 +25,16 @@ package processing.core;
 
 import java.io.*;
 import java.util.*;
-import javax.microedition.lcdui.*;
-import javax.microedition.midlet.*;
-import javax.microedition.rms.*;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Typeface;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
@@ -43,7 +44,7 @@ import android.view.WindowManager;
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */
-public abstract class PMIDlet extends Activity {
+public abstract class PMIDlet extends Activity implements DialogInterface.OnClickListener {
 
 	private static final String tag = "PMIDlet";
 
@@ -122,8 +123,6 @@ public abstract class PMIDlet extends Activity {
 	protected int frameCount;
 
 	public PCanvas canvas;
-	public int width;
-	public int height;
 
 	private Runtime runtime;
 	private Thread thread;
@@ -158,11 +157,13 @@ public abstract class PMIDlet extends Activity {
 	private Object[] eventDataClone;
 
 	private int numColors = 16777216;
+	
+	private AlertDialog errorDialog;
 
 	/** Creates a new instance of PMIDlet */
 	public PMIDlet() {
 	}
-
+	
 	@Override
 	protected void onStart() {
 		super.onStart();
@@ -170,18 +171,24 @@ public abstract class PMIDlet extends Activity {
 		WindowManager w = getWindowManager();
 		int pxFormat = w.getDefaultDisplay().getPixelFormat();
 		Log.d(tag, "Pixel format: " + pxFormat);
+
 		/*
 		 * Bitmap.Config.ARGB_8888: numColors = 16777216; //24-bit
 		 * Bitmap.Config.ARGB_4444: numColors = 4096; //12-bit
 		 * Bitmap.Config.RGB_565: numColors = 65536; //16-bit
 		 */
+		
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		
+		//create a dialog for display of errors/exceptions
+		errorDialog = builder.create();
+		errorDialog.setTitle("Exception");
+		errorDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Exit", this);
+		
 		runtime = Runtime.getRuntime();
 
 		if (canvas == null) {
 			canvas = new PCanvas(this);
-
-			width = canvas.getWidth();
-			height = canvas.getHeight();
 
 			startTime = System.currentTimeMillis();
 			msPerFrame = 1;
@@ -204,11 +211,7 @@ public abstract class PMIDlet extends Activity {
 		}
 		redraw = true;
 
-		display.setCurrent(canvas);
-	}
-
-	public final Canvas getCanvas() {
-		return canvas;
+		setContentView(canvas);
 	}
 
 	@Override
@@ -222,6 +225,15 @@ public abstract class PMIDlet extends Activity {
 	protected void onPause() {
 		super.onPause();
 		running = false;
+	}
+	
+	@Override
+	public void onClick(DialogInterface dialog, int which) {
+		//if its the error / exit dialog
+		if (dialog == errorDialog) {
+			//exit the app
+			finish();
+		}
 	}
 
 	public final void run() {
@@ -242,18 +254,15 @@ public abstract class PMIDlet extends Activity {
 					lastFrameTime = currentTime;
 					framerate = 1000 / elapsed;
 					frameCount++;
-
 					redraw = false;
 				}
 				Thread.yield();
 			} while (running || (eventsLength > 0));
 		} catch (Throwable t) {
 			t.printStackTrace();
-			Form form = new Form("Exception");
-			form.append(t.toString());
-			form.setCommandListener(this);
-			form.addCommand(cmdExit);
-			display.setCurrent(form);
+			//display the exception
+			errorDialog.setMessage(t.toString());
+			errorDialog.show();
 		}
 		thread = null;
 	}

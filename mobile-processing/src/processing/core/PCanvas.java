@@ -27,17 +27,24 @@ import java.util.Vector;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Bitmap.Config;
 import android.graphics.Paint.Style;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 /**
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */
-public class PCanvas extends Canvas {
+public class PCanvas extends SurfaceView implements
+		SurfaceHolder.Callback {
+
+	private final static String tag = "PCanvas";
 	
     protected static final int EDGE_X           = 0;
     protected static final int EDGE_DX          = 1;
@@ -91,13 +98,35 @@ public class PCanvas extends Canvas {
     protected int           textAlign;
     protected int           textLeading;
     
+    private UpdaterThread thread;
+    
     /** Creates a new instance of PCanvas */
-    public PCanvas(PMIDlet midlet) {
+	public PCanvas(PMIDlet midlet) {
+		super(midlet);
         this.midlet = midlet;
         
-        width = getWidth();
-        height = getHeight();
-        
+		setFocusable(true);
+
+		//set wxh
+		this.width = getWidth();
+		this.height = getHeight();
+
+		// register our interest in hearing about changes to our surface
+		SurfaceHolder holder = getHolder();
+		holder.addCallback(this);
+
+		// create thread only; it's started in surfaceCreated()
+		thread = new UpdaterThread(holder, new Handler() {
+			@Override
+			public void handleMessage(Message m) {
+				Log.d(tag, "Message: " + m.getData());
+				//if (textView != null) {
+				//	textView.setVisibility(m.getData().getInt("viz"));
+				//	textView.setText(m.getData().getString("text"));
+				//}
+			}
+		});
+
         buffer = Bitmap.createBitmap(width, height, Config.ARGB_8888);
         bufferg = new Canvas(buffer);       
         
@@ -132,14 +161,11 @@ public class PCanvas extends Canvas {
         textAlign = PMIDlet.LEFT;
         
         background(200);
-    }
+	
+	}    
     
     protected void reset() {
         resetMatrix();
-    }
- 
-    protected void paint(Canvas g) {
-        g.drawBitmap(buffer, 0, 0, null);
     }
     
     protected void keyPressed(int keyCode) {
@@ -1098,33 +1124,137 @@ public class PCanvas extends Canvas {
     public void textLeading(int dist) {
         textLeading = dist;
     }
-    
-    protected void showNotify() {
-        int width = getWidth();
-        int height = getHeight();
-        if ((this.width != width) || (this.height != height)) {
-            sizeChanged(width, height);
-        }
-        if (suspended) {
-            midlet.resume();
-            suspended = false;
-        }
-        midlet.start();
-    }
-    
-    protected void hideNotify() {
-        midlet.suspend();
-        suspended = true;
-    }
-    
-    protected void sizeChanged(int width, int height) {        
-        this.width = midlet.width = width;
-        this.height = midlet.height = height;
+
+	/**
+	 * Standard window-focus override. Notice focus lost so we can pause on
+	 * focus lost. e.g. user switches to take a call.
+	 */
+	@Override
+	public void onWindowFocusChanged(boolean hasWindowFocus) {
+		Log.d(tag, "onWindowFocusChanged");
+		if (hasWindowFocus) {
+	        if (suspended) {
+	            suspended = false;
+	        }			
+			thread.pause(false);
+		} else {
+	        suspended = true;
+			thread.pause(true);
+		} 
+	}
+
+	/* Callback invoked when the surface dimensions change. */
+	public void surfaceChanged(SurfaceHolder holder, int format, int width,
+			int height) {
+		//Log.d(tag, "surfaceChanged");
+
+		//pause drawing
+		thread.pause(true);
+
+		//update widths and heights
+		this.width = width;
+        this.height = height;
         
         buffer = Bitmap.createBitmap(width, height, Config.ARGB_8888);
         bufferg = new Canvas(buffer);   
         
         background(200);
-    }
+        
+        //unpause drawing
+        thread.pause(false);
+	}
+
+	/*
+	 * Callback invoked when the Surface has been created and is ready to be
+	 * used.
+	 */
+	public void surfaceCreated(SurfaceHolder holder) {
+		//Log.d(tag, "surfaceCreated");
+		// start the thread here so that we don't busy-wait in run()
+		// waiting for the surface to be created
+		thread.start();
+	}
+
+	/*
+	 * Callback invoked when the Surface has been destroyed and must no longer
+	 * be touched. WARNING: after this method returns, the Surface/Canvas must
+	 * never be touched again!
+	 */
+	public void surfaceDestroyed(SurfaceHolder holder) {
+		// we have to tell thread to shut down & wait for it to finish, or else
+		// it might touch the Surface after we return and explode
+		boolean retry = true;
+		thread.shutdown();
+		while (retry) {
+			try {
+				thread.join();
+				retry = false;
+			} catch (InterruptedException e) {
+			}
+		}
+	}
+	
+	private class UpdaterThread extends Thread {
+
+		// message handler used by thread to interact with TextView
+		private Handler handler;
+
+		// whether the surface has been created & is ready to draw
+		private boolean run = true;
+		
+		// halt drawing while paused
+		private boolean paused = false;
+
+		// handle to the surface manager object we interact with
+		private SurfaceHolder surfaceHolder;
+
+		public UpdaterThread(SurfaceHolder surfaceHolder, Handler handler) {
+			Log.d(tag, "New updater thread");
+			// get handles to some important objects
+			this.surfaceHolder = surfaceHolder;
+			this.handler = handler;
+		}
+		
+		@Override
+		public void run() {
+			while (run) {
+				if (paused) {
+					try {
+						//sleep for 1/4 second
+						Thread.sleep(250);
+					} catch (InterruptedException e) {
+					}
+					continue;
+				}
+				Canvas c = null;
+				try {
+					c = surfaceHolder.lockCanvas(null);
+					synchronized (surfaceHolder) {
+						if (buffer != null) {
+							// draw the image. operations on the Canvas accumulate
+							// so this is like clearing the screen.
+							c.drawBitmap(buffer, 0, 0, null);
+						}
+					}
+				} finally {
+					// do this in a finally so that if an exception is thrown
+					// during the above, we don't leave the Surface in an
+					// inconsistent state
+					if (c != null) {
+						surfaceHolder.unlockCanvasAndPost(c);
+					}
+				}
+			}
+		}	
+		
+		public void pause(boolean pause) {
+			paused = pause;
+		}
+		
+		public void shutdown() {
+			run = false;
+		}
+		
+	}	
     
 }
